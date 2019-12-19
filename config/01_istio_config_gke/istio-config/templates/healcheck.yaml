@@ -1,0 +1,66 @@
+# This is a definition that allows the Ingress LB to see the 
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.healthcheck.namespace }}
+  labels:
+    istio-injection: enabled
+spec:
+  finalizers:
+  - kubernetes
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  namespace: {{ .Values.healthcheck.namespace }}
+  name: nginx-healthcheck-only
+spec:
+  hosts:
+{{- range .Values.healthcheck.hosts }}
+    - {{ . | quote }}
+{{- end }}
+  gateways:
+  - {{ .Values.ingressgateway.namespace }}/ingressgateway
+  http:
+  - match:
+    - uri:
+        exact: /
+    route:
+    - destination:
+        host: nginx-healthcheck-only
+        port:
+          number: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  namespace:  {{ .Values.healthcheck.namespace }}
+  name: nginx-healthcheck-only
+spec:
+  selector:
+    app: nginx-healthcheck-only
+  ports:
+  - name: http-nginx
+    protocol: TCP
+    port: 80
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  namespace: {{ .Values.healthcheck.namespace }}
+  name: nginx-healthcheck-only
+spec:
+  selector:
+    matchLabels:
+      app: nginx-healthcheck-only
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-healthcheck-only
+    spec:
+      containers:
+      - name: nginx-healthcheck-only
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80

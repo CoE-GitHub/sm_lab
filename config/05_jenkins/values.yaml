@@ -1,0 +1,44 @@
+master:
+    name: jenkins-master
+    image: "jenkins/jenkins"
+    tag: "latest"
+
+    adminUser: admin
+    adminPassword: adminka
+    installPlugins:
+        - kubernetes:1.21.1
+        - workflow-job:2.35
+        - workflow-aggregator:2.6
+        - workflow-durable-task-step:2.35
+        - workflow-multibranch:2.21
+        - ws-cleanup:0.37
+        - credentials-binding:1.20
+        - git:3.12.1
+        - github:1.29.5
+        - docker:1.1.8
+        - docker-build-step:2.4
+        - nodelabelparameter:1.7.2
+        - view-job-filters:2.1.1
+        - seed:2.1.4
+        - groovy:2.2
+        - gradle:1.34
+        - gradle-repo:1.0.1
+        - folder-properties:1.0
+        - pipeline-utility-steps:2.3.1
+    
+    servicePort: 8080
+    serviceType: LoadBalancer
+
+agent:
+    enabled: true
+    image: "jenkins/jnlp-slave"
+    tag: "3.27-1"
+
+    rbac:
+        install: true
+
+persistence:
+    enabled: true
+
+serviceAccount:
+    create: true

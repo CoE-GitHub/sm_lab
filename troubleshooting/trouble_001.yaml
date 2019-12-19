@@ -1,0 +1,154 @@
+# This is a definition that allows the Ingress LB to see the 
+#INGRESIIP=$(kubectl get svc istio-ingressgateway -n istio-system -o json | jq ".status.loadBalancer.ingress[0].ip" | sed -e 's/^"//' -e 's/"$//')
+#echo $INGRESIIP trouble001.epo.ss-ops.com | sudo tee -a /etc/hosts
+#kubectl -n trouble001 exec -it deployment/webserver-trouble001 bash
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trouble001
+  labels:
+    istio-injection: enabled
+spec:
+  finalizers:
+  - kubernetes
+---
+kind: VirtualService
+apiVersion: networking.istio.io/v1alpha3
+metadata:
+  name: webserver
+  namespace: trouble001
+  labels:
+    app: webserver
+spec:
+  hosts:
+    - webserver
+    - webserver.trouble001.svc.cluster.local
+    - webserver.epo.ss-ops.com
+  gateways:
+    - istio-system/ingressgateway
+    - mesh
+  http:
+    - route:
+        - destination:
+            host: webserver.trouble001.svc.cluster.local
+            port:
+              number: 8080
+            subset: v1
+          weight: 100
+        - destination:
+            host: webserver.trouble001.svc.cluster.local
+            port:
+              number: 8080
+            subset: v2
+          weight: 0
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: webserver
+  namespace: trouble001
+spec:
+  host: webserver
+  trafficPolicy:
+    loadBalancer:
+      simple: RANDOM
+    trafficPolicy:
+    tls:
+        mode: ISTIO_MUTUAL
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+---
+kind: Service
+apiVersion: v1
+metadata:
+  namespace:  trouble001
+  name: webserver
+spec:
+  selector:
+    app: webserver
+  ports:
+  - name: webserver
+    protocol: TCP
+    port: 80
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  namespace: trouble001
+  name: webserver-nginx
+spec:
+  selector:
+    matchLabels:
+      app: webserver
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: webserver
+        version: v1
+    spec:
+      containers:
+      - name: webserver
+        image: nginx:1.7.9
+        ports:
+        - containerPort: 80
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  namespace: trouble001
+  name: webserver-httpd
+spec:
+  selector:
+    matchLabels:
+      app: webserver
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: webserver
+        version: v2
+    spec:
+      containers:
+      - name: webserver
+        image: httpd:latest
+        ports:
+        - containerPort: 80
+---
+    ##
+# This is a test deployment to simulate
+# continuous load on the services
+##
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: curl
+  namespace: trouble001
+  labels:
+    app: curl
+spec:
+  selector:
+    matchLabels:
+      app: curl
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: curl
+    spec:
+      containers:
+      - name: curl
+        image: curlimages/curl
+        command: 
+        - sh
+        - -c
+        - set -x; while true; do sleep 5; done
+        ports:
+        - containerPort: 80
+          name: http

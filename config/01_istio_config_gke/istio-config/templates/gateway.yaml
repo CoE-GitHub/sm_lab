@@ -1,0 +1,22 @@
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  namespace: {{ .Values.ingressgateway.namespace }}
+  name: ingressgateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE # enables HTTPS on this port
+      serverCertificate: /etc/istio/ingressgateway-certs/cert1
+      privateKey: /etc/istio/ingressgateway-certs/key1
+    hosts:
+{{- range .Values.ingressgateway.hosts }}
+    - {{ . | quote }}
+{{- end }}

@@ -1,0 +1,16 @@
+apiVersion: kiali.io/v1alpha1
+kind: Kiali
+metadata:
+  name: kiali
+annotations:
+  ansible.operator-sdk/reconcile-period: "0s"
+spec:
+    istio_component_namespaces:
+        prometheus: istio-system
+    istio_namespace: "istio-system"
+    deployment:
+        ingress_enabled: false
+        service_type: LoadBalancer
+    external_services:
+        prometheus:
+            url: "http://prometheus-server.istio-system.svc.cluster.local"

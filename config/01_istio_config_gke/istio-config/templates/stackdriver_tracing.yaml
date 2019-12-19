@@ -1,0 +1,17 @@
+{{ if  .Values.tracing.enabled }}
+
+apiVersion: config.istio.io/v1alpha2
+kind: rule
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: EnsureExists
+    k8s-app: istio
+  name: stackdriver-tracing-rule
+  namespace: {{ .Values.global.namespace }}
+spec:
+  actions:
+  - handler: handler.stackdriver.istio-system
+    instances:
+    - stackdriver-span.tracespan.istio-system
+  match: "true"
+{{ end }}

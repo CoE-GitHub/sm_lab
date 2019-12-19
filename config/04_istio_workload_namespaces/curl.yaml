@@ -1,0 +1,31 @@
+##
+# This is a test deployment to simulate
+# continuous load on the services
+##
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: curl
+  labels:
+    app: curl
+spec:
+  selector:
+    matchLabels:
+      app: curl
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: curl
+    spec:
+      containers:
+      - name: curl
+        image: curlimages/curl
+        command: 
+        - sh
+        - -c
+        - set -x; while true; do curl frontend.prod.svc.cluster.local/callbackend?path=/; curl frontend-master.stage.svc.cluster.local/callbackend?path=/; curl frontend-master.dev.svc.cluster.local/callbackend?path=/; sleep 2; done
+        ports:
+        - containerPort: 80
+          name: http
